@@ -3,9 +3,9 @@ import numpy as np
 from datetime import datetime, timedelta
 
 def executar_etl():
-    print("Gerando dataset ampliado com 5.000 linhas...")
+    print("Gerando dataset e aba de dicionario de dados...")
     
-    # 10 estações distribuídas pelas regiões da cidade
+    # 1. Geração dos 5000 registros de dados (Mesma lógica anterior)
     estacoes = [
         {"id": f"PNT{i:02d}", "regiao": reg, "bairro": bairro, "tipo": tipo}
         for i, (reg, bairro, tipo) in enumerate([
@@ -28,7 +28,6 @@ def executar_etl():
     
     np.random.seed(42)
     
-    # 10 estações x 500 registros horários cada = 5.000 linhas no total
     for est in estacoes:
         for passo in range(500):
             data_atual = data_inicial + timedelta(hours=passo)
@@ -78,10 +77,45 @@ def executar_etl():
             registros.append(registro)
             contador += 1
 
-    df = pd.DataFrame(registros)
+    df_dados = pd.DataFrame(registros)
+
+    # 2. Criação do DataFrame da segunda aba (Dicionário de Dados conforme a imagem)
+    dicionario_dados = {
+        "Coluna": [
+            "id_coleta", "id_ponto_monitoramento", "data_coleta", "regiao", 
+            "bairro", "tipo_area", "temperatura_c", "umidade_%", 
+            "velocidade_vento_kmh", "chuva_mm", "pm25_ug_m3", "pm10_ug_m3", 
+            "co_ppm", "no2_ppb", "o3_ppb", "indice_qualidade_ar", "qualidade_percebida"
+        ],
+        "Descrição": [
+            "identificador único da medição.",
+            "local onde o sensor está instalado.",
+            "data/hora da medição.",
+            "região da cidade.",
+            "bairro do ponto de monitoramento.",
+            "residencial, industrial, comercial, escolar etc.",
+            "temperatura em °C.",
+            "umidade relativa do ar (%).",
+            "velocidade do vento (km/h).",
+            "precipitação registrada (mm).",
+            "concentração de material particulado fino PM2,5 (µg/m³).",
+            "concentração de material particulado PM10 (µg/m³).",
+            "concentração de monóxido de carbono (ppm).",
+            "concentração de dióxido de nitrogênio (ppb).",
+            "concentração de ozônio (ppb).",
+            "índice calculado a partir dos poluentes.",
+            "percepção da população: Boa, Moderada, Ruim, Péssima etc."
+        ]
+    }
+    df_dicionario = pd.DataFrame(dicionario_dados)
+
+    # 3. Salvando em um arquivo Excel com múltiplas abas usando ExcelWriter
     nome_arquivo = "cidade_alfa_qualidade_ar_ajustado.xlsx"
-    df.to_excel(nome_arquivo, index=False)
-    print(f"Sucesso! Planilha gerada com {len(df)} linhas e todas as colunas exigidas.")
+    with pd.ExcelWriter(nome_arquivo, engine='openpyxl') as writer:
+        df_dados.to_excel(writer, sheet_name='Dados', index=False)
+        df_dicionario.to_excel(writer, sheet_name='Dicionario', index=False)
+
+    print(f"Sucesso! Planilha gerada com as abas 'Dados' e 'Dicionario' em: {nome_arquivo}")
 
 if __name__ == "__main__":
     executar_etl()
