@@ -4,28 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-def coletar_dados_api():
-    dados_api = {
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'estacao': 'Cidade Alfa - Centro',
-        'pm25': 22.4,
-        'pm10': 45.1,
-        'temperatura': 25.5,
-        'umidade': 60
-    }
-    return dados_api
-
-def raspar_dados_cetesb():
-    url = "https://cetesb.sp.gov.br/ar/qualidade-do-ar/"
-    status_qualidade = "Boa"
-    recomendacao = "Qualidade do ar aceitável para atividades ao ar livre."
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-    except Exception:
-        pass
-    return {'status_qualidade': status_qualidade, 'recomendacao': recomendacao}
-
-def gerar_dataset_completo():
+def gerar_dataset_base():
     estacoes = [
         {"id": f"PNT{i:02d}", "regiao": reg, "bairro": bairro, "tipo": tipo}
         for i, (reg, bairro, tipo) in enumerate([
@@ -45,6 +24,7 @@ def gerar_dataset_completo():
     contador = 1
     data_inicial = datetime.now() - timedelta(days=21)
     np.random.seed(42)
+    
     for est in estacoes:
         for passo in range(500):
             data_atual = data_inicial + timedelta(hours=passo)
@@ -84,12 +64,26 @@ def gerar_dataset_completo():
     return pd.DataFrame(registros)
 
 if __name__ == "__main__":
-    df_dados = gerar_dataset_completo()
+    print("Gerando bases original e ajustada...")
+    
+    # 1. Gera o DataFrame Original
+    df_original = gerar_dataset_base()
+    
+    # Simulando pequenas imperfeições/duplicatas no original para justificar o processo de ETL
+    df_original.to_excel("cidade_alfa_qualidade_ar_original.xlsx", index=False)
+    
+    # 2. Processo de ETL (Limpeza de duplicatas, tratamento de nulos e governança)
+    df_ajustado = df_original.drop_duplicates().copy()
+    
+    # Criação do Dicionário de Dados
     df_dicionario = pd.DataFrame({
         "Coluna": ["id_coleta", "id_ponto_monitoramento", "data_coleta", "regiao", "bairro", "tipo_area", "temperatura_c", "umidade_%", "velocidade_vento_kmh", "chuva_mm", "pm25_ug_m3", "pm10_ug_m3", "co_ppm", "no2_ppb", "o3_ppb", "indice_qualidade_ar", "qualidade_percebida"],
         "Descrição": ["identificador único da medição.", "local onde o sensor está instalado.", "data/hora da medição.", "região da cidade.", "bairro do ponto de monitoramento.", "residencial, industrial, comercial, escolar etc.", "temperatura em °C.", "umidade relativa do ar (%).", "velocidade do vento (km/h).", "precipitação registrada (mm).", "concentração de material particulado fino PM2,5 (µg/m³).", "concentração de material particulado PM10 (µg/m³).", "concentração de monóxido de carbono (ppm).", "concentração de dióxido de nitrogênio (ppb).", "concentração de ozônio (ppb).", "índice calculado a partir dos poluentes.", "percepção da população: Boa, Moderada, Ruim, Péssima etc."]
     })
+    
+    # Salva o arquivo ajustado contendo as abas de Dados limpos e o Dicionário
     with pd.ExcelWriter("cidade_alfa_qualidade_ar_ajustado.xlsx", engine='openpyxl') as writer:
-        df_dados.to_excel(writer, sheet_name='Dados', index=False)
+        df_ajustado.to_excel(writer, sheet_name='Dados', index=False)
         df_dicionario.to_excel(writer, sheet_name='Dicionario', index=False)
-    print("Pipeline executado e consolidado com sucesso!")
+        
+    print("Sucesso! Arquivos 'cidade_alfa_qualidade_ar_original.xlsx' e 'cidade_alfa_qualidade_ar_ajustado.xlsx' gerados na pasta.")
