@@ -64,26 +64,28 @@ def gerar_dataset_base():
     return pd.DataFrame(registros)
 
 if __name__ == "__main__":
-    print("Gerando bases original e ajustada...")
+    print("Gerando bases original e ajustada com dicionario de dados...")
     
     # 1. Gera o DataFrame Original
     df_original = gerar_dataset_base()
     
-    # Simulando pequenas imperfeições/duplicatas no original para justificar o processo de ETL
-    df_original.to_excel("cidade_alfa_qualidade_ar_original.xlsx", index=False)
-    
-    # 2. Processo de ETL (Limpeza de duplicatas, tratamento de nulos e governança)
-    df_ajustado = df_original.drop_duplicates().copy()
-    
-    # Criação do Dicionário de Dados
+    # Dicionário de Dados padrão
     df_dicionario = pd.DataFrame({
         "Coluna": ["id_coleta", "id_ponto_monitoramento", "data_coleta", "regiao", "bairro", "tipo_area", "temperatura_c", "umidade_%", "velocidade_vento_kmh", "chuva_mm", "pm25_ug_m3", "pm10_ug_m3", "co_ppm", "no2_ppb", "o3_ppb", "indice_qualidade_ar", "qualidade_percebida"],
         "Descrição": ["identificador único da medição.", "local onde o sensor está instalado.", "data/hora da medição.", "região da cidade.", "bairro do ponto de monitoramento.", "residencial, industrial, comercial, escolar etc.", "temperatura em °C.", "umidade relativa do ar (%).", "velocidade do vento (km/h).", "precipitação registrada (mm).", "concentração de material particulado fino PM2,5 (µg/m³).", "concentração de material particulado PM10 (µg/m³).", "concentração de monóxido de carbono (ppm).", "concentração de dióxido de nitrogênio (ppb).", "concentração de ozônio (ppb).", "índice calculado a partir dos poluentes.", "percepção da população: Boa, Moderada, Ruim, Péssima etc."]
     })
     
-    # Salva o arquivo ajustado contendo as abas de Dados limpos e o Dicionário
+    # Salva o arquivo Original contendo a aba de Dados brutos e o Dicionário
+    with pd.ExcelWriter("cidade_alfa_qualidade_ar_original.xlsx", engine='openpyxl') as writer:
+        df_original.to_excel(writer, sheet_name='Dados', index=False)
+        df_dicionario.to_excel(writer, sheet_name='Dicionario', index=False)
+    
+    # 2. Processo de ETL (Limpeza de duplicatas para a base ajustada)
+    df_ajustado = df_original.drop_duplicates().copy()
+    
+    # Salva o arquivo Ajustado contendo a aba de Dados limpos e o Dicionário
     with pd.ExcelWriter("cidade_alfa_qualidade_ar_ajustado.xlsx", engine='openpyxl') as writer:
         df_ajustado.to_excel(writer, sheet_name='Dados', index=False)
         df_dicionario.to_excel(writer, sheet_name='Dicionario', index=False)
         
-    print("Sucesso! Arquivos 'cidade_alfa_qualidade_ar_original.xlsx' e 'cidade_alfa_qualidade_ar_ajustado.xlsx' gerados na pasta.")
+    print("Sucesso! Ambos os arquivos ('original' e 'ajustado') agora contêm as abas 'Dados' e 'Dicionario'.")
